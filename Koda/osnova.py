@@ -55,12 +55,12 @@ if __name__ == "__main__":
     """
 
 
-    """
+    
     ###---- ISOLET PROBLEM ----###
 
     # Zbirka podatkov
-    ucniPodatki = np.genfromtxt(".\Koda\isolet1+2+3+4.data", delimiter=', ', dtype=float)
-    testniPodatki = np.genfromtxt(".\Koda\isolet5.data", delimiter=', ', dtype=float)
+    ucniPodatki = np.genfromtxt(".\Tri-plastni-perceptron\Koda\isolet1+2+3+4.data", delimiter=', ', dtype=float)
+    testniPodatki = np.genfromtxt(".\Tri-plastni-perceptron\Koda\isolet5.data", delimiter=', ', dtype=float)
     #print(ucniPodatki[0])
 
     # Nastavljanje podatkov o mneži (3 plastni perceptron)
@@ -68,11 +68,12 @@ if __name__ == "__main__":
     steviloSkritih = 300
     steviloIzhodov = 26
     ucniFaktor = 0.05
-    ucenjeIteracije = 100000
+    epohe = 100
 
     perc = perceptron.Perceptron(steviloVhodov, steviloSkritih, steviloIzhodov, ucniFaktor)
 
     # Rezultati testov:
+    # ! Brez epoh, random izbrani vzorci in vsak ponovljen nekaj krat - pustil ker sem že naredu ampak ne upoštevam !
     # 1) 300 skritih, 0.1 faktor, 100000 iteracij (random, 5 krat vsak vzorec): 
     #   - Testni vzorci - Pravilnih: 1437 , Napačnih: 122 , Točnost: 92.17447081462477
     #   - Ucni vzorci - Pravilnih: 6202 , Napačnih: 36 , Točnost: 99.4228919525489
@@ -90,131 +91,175 @@ if __name__ == "__main__":
     #   - Ucni vzorci - Pravilnih: 6147 , Napačnih: 91 , Točnost: 98.54119910227637
 
     ### Program ###
-    # Učenje #
-    for i in range(ucenjeIteracije):
-        if (i % 100) == 1:
-            print("Iteracija #:",i)
-
-        izberi = rnd.sample(range(0,6238), 1)
-        data = ucniPodatki[izberi]
-        oblika = data.shape
-        dolzina = oblika[1]
-        znacilke = data[0][0:(dolzina-1)]
-        razred = data[0][(dolzina-1)]
-        razredReal = np.zeros(26)
-        razredReal[int(razred-1)] = 1
-        
-        for i in range(5):
-            perc.Ucenje(znacilke.reshape(-1, 1),razredReal.reshape(-1, 1))
-
 
     # Test #
     # Testni vzorci
-    pravilnih = 0
-    napacnih = 0
-    tocnost = 0
+    def Test_testni(konec):
+        pravilnih = 0
+        napacnih = 0
+        tocnost = 0
 
-    for i in range(len(testniPodatki)):
+        for i in range(len(testniPodatki)):
 
-        data = testniPodatki[i]
-        dolzina = len(data)
-        znacilke = data[0:(dolzina-1)]
-        razred = data[(dolzina-1)]
-        rezredPredict = 0
+            data = testniPodatki[i]
+            dolzina = len(data)
+            znacilke = data[0:(dolzina-1)]
+            razred = data[(dolzina-1)]
+            rezredPredict = 0
 
-        testData = znacilke.reshape(-1, 1)
-        rezultat = perc.FeedForward(testData) # Testiranje mreže
+            testData = znacilke.reshape(-1, 1)
+            rezultat = perc.FeedForward(testData) # Testiranje mreže
 
-        for i in range(26):
-            rezredPredict += rezultat[i][0] * (i + 1)
+            for i in range(26):
+                rezredPredict += rezultat[i][0] * (i + 1)
 
-        if rezredPredict == razred:
-            pravilnih += 1
-        else:
-            napacnih += 1
+            if rezredPredict == razred:
+                pravilnih += 1
+            else:
+                napacnih += 1
 
-    tocnost = (pravilnih / len(testniPodatki)) * 100
+        tocnost = (pravilnih / len(testniPodatki)) * 100
 
-    print("Testni vzorci - Pravilnih:", pravilnih, ", Napačnih:", napacnih, ", Točnost:", tocnost)
+        if konec == 1: print("Testni vzorci - Pravilnih:", pravilnih, ", Napačnih:", napacnih, ", Točnost:", tocnost)
+
+        return tocnost
+
 
     # Učni vzorci
-    pravilnih = 0
-    napacnih = 0
-    tocnost = 0
+    def Test_ucni():
+        pravilnih = 0
+        napacnih = 0
+        tocnost = 0
 
-    for i in range(len(ucniPodatki)):
+        for i in range(len(ucniPodatki)):
 
-        data = ucniPodatki[i]
-        dolzina = len(data)
-        znacilke = data[0:(dolzina-1)]
-        razred = data[(dolzina-1)]
-        rezredPredict = 0
+            data = ucniPodatki[i]
+            dolzina = len(data)
+            znacilke = data[0:(dolzina-1)]
+            razred = data[(dolzina-1)]
+            rezredPredict = 0
 
-        testData = znacilke.reshape(-1, 1)
-        rezultat = perc.FeedForward(testData) # Testiranje mreže
+            testData = znacilke.reshape(-1, 1)
+            rezultat = perc.FeedForward(testData) # Testiranje mreže
 
-        for i in range(26):
-            rezredPredict += rezultat[i][0] * (i + 1)
+            for i in range(26):
+                rezredPredict += rezultat[i][0] * (i + 1)
 
-        if rezredPredict == razred:
-            pravilnih += 1
+            if rezredPredict == razred:
+                pravilnih += 1
+            else:
+                napacnih += 1
+
+        tocnost = (pravilnih / len(ucniPodatki)) * 100
+
+        print("Ucni vzorci - Pravilnih:", pravilnih, ", Napačnih:", napacnih, ", Točnost:", tocnost)
+
+
+
+    # Učenje #
+    tocnostOld = 0
+    slabse = 0
+    konec = 0
+
+    for j in range(epohe):
+
+        np.random.shuffle(ucniPodatki) # random razmeči podatke
+        print("Moja koda - Epocha:", j)
+
+        for i in range(len(ucniPodatki)):
+            #izberi = rnd.sample(range(0,6238), 1)
+            data = ucniPodatki[i]
+            dolzina = len(data)
+            znacilke = data[0:(dolzina-1)]
+            razred = data[(dolzina-1)]
+            razredReal = np.zeros(26)
+            razredReal[int(razred-1)] = 1
+            
+            perc.Ucenje(znacilke.reshape(-1, 1),razredReal.reshape(-1, 1))
+
+        # test prenaučenosti
+        naucenost = Test_testni(konec)
+
+        if tocnostOld < naucenost:
+            tocnostOld = naucenost
+            slabse = 0
         else:
-            napacnih += 1
+            slabse += 1
+            if slabse == 3:
+                break
+                
 
-    tocnost = (pravilnih / len(ucniPodatki)) * 100
-
-    print("Ucni vzorci - Pravilnih:", pravilnih, ", Napačnih:", napacnih, ", Točnost:", tocnost)
+    # Izpis točnosti
+    konec = 1
+    none = Test_testni(konec)
+    Test_ucni()
+        
+    
     """
 
     ############################
     ### PERCEPTRON - PYTORCH ###
     ############################
 
+    # Preverjanje ali je na voljo GPU (coda)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Device:", device)
 
     # Zbirka podatkov
-    ucniPodatki = np.genfromtxt(".\Koda\isolet1+2+3+4.data", delimiter=', ', dtype=float)
-    testniPodatki = np.genfromtxt(".\Koda\isolet5.data", delimiter=', ', dtype=float)
+    ucniPodatki = np.genfromtxt(".\Tri-plastni-perceptron\Koda\isolet1+2+3+4.data", delimiter=', ', dtype=float)
+    testniPodatki = np.genfromtxt(".\Tri-plastni-perceptron\Koda\isolet5.data", delimiter=', ', dtype=float)
 
     # Nastavljanje podatkov o mneži (3 plastni perceptron)
     steviloVhodov = len(ucniPodatki[0]) - 1
-    steviloSkritih = 300
+    steviloSkritih = 200
     steviloIzhodov = 26
-    ucniFaktor = 0.1
-    ucenjeIteracije = 100000
+    ucniFaktor = 0.001
+    ucenjeIteracije = 10000
 
     model = perceptronPytorch.PerceptronPytorch(steviloVhodov, steviloSkritih, steviloIzhodov)
     loss_fn = nn.MSELoss() 
     model.to(device)
-    # podatki za učenje
-    optimizer = optim.SGD(model.parameters(), ucniFaktor)  # Testni vzorci - Pravilnih: 1405 , Napačnih: 154 , Točnost: 90.12187299550995
-    #optimizer = optim.Adam(model.parameters(), ucniFaktor)
+    
+    ## Podatki za učenje - različni algoritmi ##
+    # 1) Stochastic Gradient Descent (SGD) #
+    #optimizer = optim.SGD(model.parameters(), ucniFaktor) # (100000,5) Testni vzorci - Pravilnih: 1405 , Napačnih: 154 , Točnost: 90.12187299550995
+    
+    # 2) Adam (Adaptive Moment Estimation) #
+    # beta1: nadzira odmik prvega momenta (podobno kot zagon), navadno se začne z okoli 0.9. Pomeni, da algoritem ohranja 90% prejšnjega odmika
+    # beta2: nadzira odmik drugega momenta (uteži kvadratov gradientov), navadno se začne z okoli 0.999. Pomeni, da algoritem ohranja 99.9% prejšnjega odmika
+    # ne rabiš dosti ponovitev, faktor učenja = 0.001
+    #optimizer = optim.Adam(model.parameters(), ucniFaktor, betas=(0.9, 0.999)) # Testni vzorci - Pravilnih: 1465 , Napačnih: 94 , Točnost: 93.97049390635023
+    
+    # 3) 
+    optimizer = optim.Adam(model.parameters(), ucniFaktor, betas=(0.9, 0.999))
 
     # Učenje
-    for i in range(ucenjeIteracije):
+    for i in range(5): # število epoch
+        for j in range(ucenjeIteracije):
 
-        if (i % 100) == 1:
-            print("Iteracija - Pytorch #:",i)
+            if (j % 100) == 1:
+                print("Pytorch - Epocha:",i,"Iteracija:",j)
 
-        izberi = rnd.sample(range(0,6238), 1)
-        data = ucniPodatki[izberi]
-        oblika = data.shape
-        dolzina = oblika[1]
-        znacilke = data[0][0:(dolzina-1)]
-        razred = data[0][(dolzina-1)]
-        razredReal = np.zeros(26)
-        razredReal[int(razred-1)] = 1
+            izberi = rnd.sample(range(0,6238), 1)
+            data = ucniPodatki[izberi]
+            oblika = data.shape
+            dolzina = oblika[1]
+            znacilke = data[0][0:(dolzina-1)]
+            razred = data[0][(dolzina-1)]
+            razredReal = np.zeros(26)
+            razredReal[int(razred-1)] = 1
 
-        # Prirejanje podatkov za PyTorch
-        znacilke = torch.from_numpy(znacilke)
-        razredReal = torch.from_numpy(razredReal)
+            # Prirejanje podatkov za PyTorch
+            znacilke = torch.from_numpy(znacilke)
+            razredReal = torch.from_numpy(razredReal)
 
-        # Če je GPU naj dela na njem     
-        znacilke = znacilke.to(device)
-        razredReal = razredReal.to(device)
+            # Če je GPU naj dela na njem     
+            znacilke = znacilke.to(device)
+            razredReal = razredReal.to(device)
 
-        for i in range(5):
+            
             # Feedforward
+            optimizer.zero_grad() # briše gradiente
             out = model(znacilke)
             loss = loss_fn(out, (razredReal).float())
 
@@ -223,11 +268,8 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
 
-    # Dodajte na konec usposabljanja
-
-
     # Testiranje 
-    model.eval() # preklopi med uččenjem in testiranjem
+    model.eval() # preklopi med učenjem in testiranjem
 
     pravilnih = 0
     napacnih = 0
@@ -260,5 +302,4 @@ if __name__ == "__main__":
     tocnost = (pravilnih / len(testniPodatki)) * 100
 
     print("Testni vzorci - Pravilnih:", pravilnih, ", Napačnih:", napacnih, ", Točnost:", tocnost)
-
-
+    """
