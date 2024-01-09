@@ -19,7 +19,7 @@ class Perceptron:
 
     ### Delovanje mreže ###
     def FeedForward(self, vhodi):
-        # XOR: vhod 1x2 -> transoniraš v 2x1 in enak je skalarni produkt
+        # XOR: vhod 1x2 -> transponiraš v 2x1 in enak je skalarni produkt
 
         # Matrične operacije med vhodi in skrito plastjo #
         skritoIn1 = np.dot(self.uteziIn, vhodi)
@@ -50,12 +50,12 @@ class Perceptron:
     ### Učenje mreže ###
     def Ucenje(self, vhodi, izhodReal):
 
-        # Matrične operacije med vhodi in skrito plastjo #
+        # Matrične operacije med vhodi in skrito plastjo - feedforward #
         skritoIn1 = np.dot(self.uteziIn, vhodi) 
-        skritoIn2 = skritoIn1 + self.biasIn
+        skritoIn2 = np.add(skritoIn1, self.biasIn)
         skritoOut = self.Sigmoid(skritoIn2)
 
-        # Matrične operacije med skrito plastjo in izhodi #
+        # Matrične operacije med skrito plastjo in izhodi - feedforward #
         izhodIn1 = np.dot(self.uteziHid, skritoOut)
         izhodIn2 = np.add(izhodIn1, self.biasHid)
         izhodOut = self.Sigmoid(izhodIn2)

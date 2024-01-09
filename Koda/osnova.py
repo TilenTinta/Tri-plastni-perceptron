@@ -1,8 +1,7 @@
 import numpy as np
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import random as rnd
 from multiprocessing import Pool
-#import os
 import torch
 from torch import nn, optim
 
@@ -55,7 +54,7 @@ if __name__ == "__main__":
     """
 
 
-    """
+  
     ###---- ISOLET PROBLEM ----###
 
     # Zbirka podatkov
@@ -90,6 +89,10 @@ if __name__ == "__main__":
     #   - Testni vzorci - Pravilnih: 1373 , Napačnih: 186 , Točnost: 88.06927517639512
     #   - Ucni vzorci - Pravilnih: 6147 , Napačnih: 91 , Točnost: 98.54119910227637
 
+    # Test z epohami (200, 0.05, 37 epoh)
+    # Testni vzorci - Pravilnih: 1453 , Napačnih: 106 , Točnost: 93.20076972418217
+    # Ucni vzorci - Pravilnih: 6238 , Napačnih: 0 , Točnost: 100.0
+
     ### Program ###
 
     # Test #
@@ -122,7 +125,7 @@ if __name__ == "__main__":
 
         if konec == 1: print("Testni vzorci - Pravilnih:", pravilnih, ", Napačnih:", napacnih, ", Točnost:", tocnost)
 
-        return tocnost
+        return tocnost, napacnih
 
 
     # Učni vzorci
@@ -160,6 +163,8 @@ if __name__ == "__main__":
     tocnostOld = 0
     slabse = 0
     konec = 0
+    tocnostGraf = []
+    napakeGraf = []
 
     for j in range(epohe):
 
@@ -178,7 +183,9 @@ if __name__ == "__main__":
             perc.Ucenje(znacilke.reshape(-1, 1),razredReal.reshape(-1, 1))
 
         # test prenaučenosti
-        naucenost = Test_testni(konec)
+        naucenost, napake = Test_testni(konec)
+        tocnostGraf.append(naucenost)
+        napakeGraf.append(napake)
 
         if tocnostOld <= naucenost:
             tocnostOld = naucenost
@@ -193,6 +200,18 @@ if __name__ == "__main__":
     konec = 1
     none = Test_testni(konec)
     Test_ucni()
+
+    plt.plot(tocnostGraf)
+    plt.title('Točnost glede na epohe')
+    plt.xlabel('Epohe')
+    plt.ylabel('Točnost [%]')
+    plt.show()
+    plt.plot(napakeGraf)
+    plt.title('Napake glede na epohe')
+    plt.xlabel('Epohe')
+    plt.ylabel('Št. napak')
+    plt.show()
+
         
     
     """
@@ -259,7 +278,7 @@ if __name__ == "__main__":
 
         if konec == 1: print("Testni vzorci - Pravilnih:", pravilnih, ", Napačnih:", napacnih, ", Točnost:", tocnost)
 
-        return tocnost
+        return tocnost, napacnih
 
     # Ucni
     def Test_ucna():
@@ -299,8 +318,12 @@ if __name__ == "__main__":
 
     
     ## Podatki za učenje - različni algoritmi ##
+    #! Za uporabo posamezne funkcije odkomentiraj vrstici optimiter in ponovi !#
+        
     # 1) Stochastic Gradient Descent (SGD) #
-    #optimizer = optim.SGD(model.parameters(), ucniFaktor) 
+    # faktro učenja = 0.1, ima dosti ponovitev
+    optimizer = optim.SGD(model.parameters(), ucniFaktor)
+    ponovi = 5
     # Testni vzorci - Pravilnih: 1428 , Napačnih: 131 , Točnost: 91.59717767799872
     # Učni vzorci - Pravilnih: 5971 , Napačnih: 267 , Točnost: 95.7197819814043
     
@@ -308,7 +331,8 @@ if __name__ == "__main__":
     # beta1: nadzira odmik prvega momenta (podobno kot zagon), navadno se začne z okoli 0.9. Pomeni, da algoritem ohranja 90% prejšnjega odmika
     # beta2: nadzira odmik drugega momenta (uteži kvadratov gradientov), navadno se začne z okoli 0.999. Pomeni, da algoritem ohranja 99.9% prejšnjega odmika
     # ne rabiš dosti ponovitev, faktor učenja = 0.001
-    #optimizer = optim.Adam(model.parameters(), ucniFaktor, betas=(0.9, 0.999)) 
+    #optimizer = optim.Adam(model.parameters(), ucniFaktor, betas=(0.9, 0.999))
+    #ponovi = 3
     # Testni vzorci - Pravilnih: 1461 , Napačnih: 98 , Točnost: 93.71391917896086
     # Učni vzorci - Pravilnih: 6216 , Napačnih: 22 , Točnost: 99.64732285989099
     
@@ -318,7 +342,9 @@ if __name__ == "__main__":
     # weight_decay: manjšanje uteži in pomaga pred overfittingom
     # momentum: moment da pohitri učenje
     # centered: compute the centered RMSProp, the gradient is normalized by an estimation of its variance.
-    optimizer = optim.RMSprop(model.parameters(), ucniFaktor, alpha=0.99, eps=1e-08, weight_decay=0.01, momentum=0, centered=False)
+    # ucni faktor = 0.01
+    #optimizer = optim.RMSprop(model.parameters(), ucniFaktor, alpha=0.99, eps=1e-08, weight_decay=0.01, momentum=0, centered=False)
+    #ponovi = 1
     # Testni vzorci - Pravilnih: 60 , Napačnih: 1499 , Točnost: 3.8486209108402822
     # Učni vzorci - Pravilnih: 240 , Napačnih: 5998 , Točnost: 3.847386983007374
 
@@ -327,7 +353,8 @@ if __name__ == "__main__":
     # weight_decay: Weight decay (L2 penalty) can help prevent overfitting.
     # initial_accumulator_value: Starting value for the accumulators, which hold the sum of squares of gradients.
     # eps: Term added to the denominator to improve numerical stability.
-    optimizer = optim.Adagrad(model.parameters(), ucniFaktor, lr_decay=0, weight_decay=0, initial_accumulator_value=0, eps=1e-10)
+    #optimizer = optim.Adagrad(model.parameters(), ucniFaktor, lr_decay=0, weight_decay=0, initial_accumulator_value=0, eps=1e-10)
+    #ponovi = 5
     # Testni vzorci - Pravilnih: 1462 , Napačnih: 97 , Točnost: 93.7780628608082
     # Učni vzorci - Pravilnih: 6041 , Napačnih: 197 , Točnost: 96.84193651811478
 
@@ -335,6 +362,8 @@ if __name__ == "__main__":
     tocnostOld = 0
     slabse = 0
     konec = 0 # samo za izpis
+    tocnostGraf = []
+    napakeGraf = []
 
     for i in range(epohe): # število epoch
 
@@ -368,14 +397,16 @@ if __name__ == "__main__":
             optimizer.step()
 
         # test prenaučenosti
-        naucenost = Test_testna(konec)
+        naucenost, napake = Test_testna(konec)
+        tocnostGraf.append(naucenost)
+        napakeGraf.append(napake)
 
         if tocnostOld <= naucenost:
             tocnostOld = naucenost
             slabse = 0
         else:
             slabse += 1
-            if slabse == 5:
+            if slabse == ponovi:
                 break
     
     # Izpis točnosti
@@ -383,7 +414,17 @@ if __name__ == "__main__":
     none = Test_testna(konec)
     Test_ucna()
 
-
+    plt.plot(tocnostGraf)
+    plt.title('Točnost glede na epohe')
+    plt.xlabel('Epohe')
+    plt.ylabel('Točnost [%]')
+    plt.show()
+    plt.plot(napakeGraf)
+    plt.title('Napake glede na epohe')
+    plt.xlabel('Epohe')
+    plt.ylabel('Št. napak')
+    plt.show()
+    """
 
     
 
