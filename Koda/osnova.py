@@ -55,7 +55,7 @@ if __name__ == "__main__":
     """
 
 
-    
+    """
     ###---- ISOLET PROBLEM ----###
 
     # Zbirka podatkov
@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
     # Nastavljanje podatkov o mneži (3 plastni perceptron)
     steviloVhodov = len(ucniPodatki[0]) - 1
-    steviloSkritih = 300
+    steviloSkritih = 200
     steviloIzhodov = 26
     ucniFaktor = 0.05
     epohe = 100
@@ -180,12 +180,12 @@ if __name__ == "__main__":
         # test prenaučenosti
         naucenost = Test_testni(konec)
 
-        if tocnostOld < naucenost:
+        if tocnostOld <= naucenost:
             tocnostOld = naucenost
             slabse = 0
         else:
             slabse += 1
-            if slabse == 3:
+            if slabse == 5:
                 break
                 
 
@@ -203,6 +203,7 @@ if __name__ == "__main__":
 
     # Preverjanje ali je na voljo GPU (coda)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #device = "cpu"
     print("Device:", device)
 
     # Zbirka podatkov
@@ -213,39 +214,138 @@ if __name__ == "__main__":
     steviloVhodov = len(ucniPodatki[0]) - 1
     steviloSkritih = 200
     steviloIzhodov = 26
-    ucniFaktor = 0.001
-    ucenjeIteracije = 10000
+    ucniFaktor = 0.01
+    epohe = 100
 
     model = perceptronPytorch.PerceptronPytorch(steviloVhodov, steviloSkritih, steviloIzhodov)
     loss_fn = nn.MSELoss() 
     model.to(device)
+
+
+    # Testiranje #
+    # Testni
+    def Test_testna(konec):
+        model.eval() # preklopi med učenjem in testiranjem
+
+        pravilnih = 0
+        napacnih = 0
+        tocnost = 0
+
+        with torch.no_grad(): # sklopi računanje gradientov
+            for i in range(len(testniPodatki)):
+
+                data = testniPodatki[i]
+                dolzina = len(data)
+                znacilke = data[0:(dolzina-1)]
+                razred = data[(dolzina-1)]
+                rezredPredict = 0
+                #testData = znacilke.reshape(-1, 1)
+
+                znacilke = torch.from_numpy(znacilke)
+                znacilke = znacilke.to(device)
+
+                outputs = model(znacilke) # Testiranje mreže
+                outputsEnd = outputs.cpu()
+
+                for i in range(26):
+                    rezredPredict += np.round(outputsEnd[i]) * (i + 1)
+
+                if rezredPredict == razred:
+                    pravilnih += 1
+                else:
+                    napacnih += 1
+                
+        tocnost = (pravilnih / len(testniPodatki)) * 100
+
+        if konec == 1: print("Testni vzorci - Pravilnih:", pravilnih, ", Napačnih:", napacnih, ", Točnost:", tocnost)
+
+        return tocnost
+
+    # Ucni
+    def Test_ucna():
+        model.eval() # preklopi med učenjem in testiranjem
+
+        pravilnih = 0
+        napacnih = 0
+        tocnost = 0
+
+        with torch.no_grad(): # sklopi računanje gradientov
+            for i in range(len(ucniPodatki)):
+
+                data = ucniPodatki[i]
+                dolzina = len(data)
+                znacilke = data[0:(dolzina-1)]
+                razred = data[(dolzina-1)]
+                rezredPredict = 0
+                #testData = znacilke.reshape(-1, 1)
+
+                znacilke = torch.from_numpy(znacilke)
+                znacilke = znacilke.to(device)
+
+                outputs = model(znacilke) # Testiranje mreže
+                outputsEnd = outputs.cpu()
+
+                for i in range(26):
+                    rezredPredict += np.round(outputsEnd[i]) * (i + 1)
+
+                if rezredPredict == razred:
+                    pravilnih += 1
+                else:
+                    napacnih += 1
+                
+        tocnost = (pravilnih / len(ucniPodatki)) * 100
+
+        print("Učni vzorci - Pravilnih:", pravilnih, ", Napačnih:", napacnih, ", Točnost:", tocnost)
+
     
     ## Podatki za učenje - različni algoritmi ##
     # 1) Stochastic Gradient Descent (SGD) #
-    #optimizer = optim.SGD(model.parameters(), ucniFaktor) # (100000,5) Testni vzorci - Pravilnih: 1405 , Napačnih: 154 , Točnost: 90.12187299550995
+    #optimizer = optim.SGD(model.parameters(), ucniFaktor) 
+    # Testni vzorci - Pravilnih: 1428 , Napačnih: 131 , Točnost: 91.59717767799872
+    # Učni vzorci - Pravilnih: 5971 , Napačnih: 267 , Točnost: 95.7197819814043
     
     # 2) Adam (Adaptive Moment Estimation) #
     # beta1: nadzira odmik prvega momenta (podobno kot zagon), navadno se začne z okoli 0.9. Pomeni, da algoritem ohranja 90% prejšnjega odmika
     # beta2: nadzira odmik drugega momenta (uteži kvadratov gradientov), navadno se začne z okoli 0.999. Pomeni, da algoritem ohranja 99.9% prejšnjega odmika
     # ne rabiš dosti ponovitev, faktor učenja = 0.001
-    #optimizer = optim.Adam(model.parameters(), ucniFaktor, betas=(0.9, 0.999)) # Testni vzorci - Pravilnih: 1465 , Napačnih: 94 , Točnost: 93.97049390635023
+    #optimizer = optim.Adam(model.parameters(), ucniFaktor, betas=(0.9, 0.999)) 
+    # Testni vzorci - Pravilnih: 1461 , Napačnih: 98 , Točnost: 93.71391917896086
+    # Učni vzorci - Pravilnih: 6216 , Napačnih: 22 , Točnost: 99.64732285989099
     
-    # 3) 
-    optimizer = optim.Adam(model.parameters(), ucniFaktor, betas=(0.9, 0.999))
+    # 3) RMSprop (Root Mean Square Propagation)
+    # alpha: gladilna konstanta. Ponavadi okrog 1 (0.99 ali 0.95)
+    # eps: vrednost dodana v imenovalec da preprečiš deljenje z 0
+    # weight_decay: manjšanje uteži in pomaga pred overfittingom
+    # momentum: moment da pohitri učenje
+    # centered: compute the centered RMSProp, the gradient is normalized by an estimation of its variance.
+    optimizer = optim.RMSprop(model.parameters(), ucniFaktor, alpha=0.99, eps=1e-08, weight_decay=0.01, momentum=0, centered=False)
+    # Testni vzorci - Pravilnih: 60 , Napačnih: 1499 , Točnost: 3.8486209108402822
+    # Učni vzorci - Pravilnih: 240 , Napačnih: 5998 , Točnost: 3.847386983007374
+
+    # 4) Adagrad (Adaptive Gradient Algorithm)
+    # lr_decay: Learning rate decay.
+    # weight_decay: Weight decay (L2 penalty) can help prevent overfitting.
+    # initial_accumulator_value: Starting value for the accumulators, which hold the sum of squares of gradients.
+    # eps: Term added to the denominator to improve numerical stability.
+    optimizer = optim.Adagrad(model.parameters(), ucniFaktor, lr_decay=0, weight_decay=0, initial_accumulator_value=0, eps=1e-10)
+    # Testni vzorci - Pravilnih: 1462 , Napačnih: 97 , Točnost: 93.7780628608082
+    # Učni vzorci - Pravilnih: 6041 , Napačnih: 197 , Točnost: 96.84193651811478
 
     # Učenje
-    for i in range(5): # število epoch
-        for j in range(ucenjeIteracije):
+    tocnostOld = 0
+    slabse = 0
+    konec = 0 # samo za izpis
 
-            if (j % 100) == 1:
-                print("Pytorch - Epocha:",i,"Iteracija:",j)
+    for i in range(epohe): # število epoch
 
-            izberi = rnd.sample(range(0,6238), 1)
-            data = ucniPodatki[izberi]
-            oblika = data.shape
-            dolzina = oblika[1]
-            znacilke = data[0][0:(dolzina-1)]
-            razred = data[0][(dolzina-1)]
+        np.random.shuffle(ucniPodatki) # random razmeči podatke
+        print("Pytorch - Epocha:",i) 
+
+        for i in range(len(ucniPodatki)):
+            data = ucniPodatki[i]
+            dolzina = len(data)
+            znacilke = data[0:(dolzina-1)]
+            razred = data[(dolzina-1)]
             razredReal = np.zeros(26)
             razredReal[int(razred-1)] = 1
 
@@ -256,7 +356,6 @@ if __name__ == "__main__":
             # Če je GPU naj dela na njem     
             znacilke = znacilke.to(device)
             razredReal = razredReal.to(device)
-
             
             # Feedforward
             optimizer.zero_grad() # briše gradiente
@@ -268,38 +367,23 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
 
-    # Testiranje 
-    model.eval() # preklopi med učenjem in testiranjem
+        # test prenaučenosti
+        naucenost = Test_testna(konec)
 
-    pravilnih = 0
-    napacnih = 0
-    tocnost = 0
+        if tocnostOld <= naucenost:
+            tocnostOld = naucenost
+            slabse = 0
+        else:
+            slabse += 1
+            if slabse == 5:
+                break
+    
+    # Izpis točnosti
+    konec = 1
+    none = Test_testna(konec)
+    Test_ucna()
 
-    with torch.no_grad(): # sklopi računanje gradientov
-        for i in range(len(testniPodatki)):
 
-            data = testniPodatki[i]
-            dolzina = len(data)
-            znacilke = data[0:(dolzina-1)]
-            razred = data[(dolzina-1)]
-            rezredPredict = 0
-            testData = znacilke.reshape(-1, 1)
 
-            znacilke = torch.from_numpy(znacilke)
-            znacilke = znacilke.to(device)
+    
 
-            outputs = model(znacilke) # Testiranje mreže
-            outputsEnd = outputs.cpu()
-
-            for i in range(26):
-                rezredPredict += np.round(outputsEnd[i]) * (i + 1)
-
-            if rezredPredict == razred:
-                pravilnih += 1
-            else:
-                napacnih += 1
-            
-    tocnost = (pravilnih / len(testniPodatki)) * 100
-
-    print("Testni vzorci - Pravilnih:", pravilnih, ", Napačnih:", napacnih, ", Točnost:", tocnost)
-    """

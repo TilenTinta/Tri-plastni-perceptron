@@ -9,12 +9,12 @@ class Perceptron:
         self.ucniFaktor = ucniFaktor # faktor učenja
 
         # Random določi uteži
-        self.uteziIn =  np.random.uniform(-1,1,(self.skritiNo, self.vhodiNo))
-        self.uteziHid =  np.random.uniform(-1,1,(self.izhodiNo, self.skritiNo))
+        self.uteziIn =  np.random.uniform(-0.5, 0.5, (self.skritiNo, self.vhodiNo))
+        self.uteziHid =  np.random.uniform(-0.5, 0.5, (self.izhodiNo, self.skritiNo))
 
         # Random določi bias-e
-        self.biasIn = np.random.uniform(-1,1,(self.skritiNo, 1))
-        self.biasHid = np.random.uniform(-1,1,(self.izhodiNo, 1))
+        self.biasIn = np.random.uniform(-0.5,0.5,(self.skritiNo, 1))
+        self.biasHid = np.random.uniform(-0.5,0.5,(self.izhodiNo, 1))
 
 
     ### Delovanje mreže ###
